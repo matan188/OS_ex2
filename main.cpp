@@ -1,14 +1,19 @@
-//
-//  main.cpp
-//  os_ex2
-//
-//  Created by Eyal Cohen on 10/03/2016.
-//  Copyright © 2016 Eyal Cohen. All rights reserved.
-//
-
 #include "uthreads.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 
 int main(void)
 {
+    std::cout << "calling init: " << std::endl;
+    uthread_init(1000000);
+    
+    uthread_spawn([](){});
+    uthread_spawn([](){});
+    uthread_spawn([](){});
+    uthread_terminate(2);
+    uthread_spawn([](){});
+    
+    for(;;){};
     return 0;
 }
