@@ -24,24 +24,60 @@ ThreadsStates readyThreads;
 ThreadsStates sleepingThreads;
 ThreadsStates blockThreads;
 int runningThread;
+struct itimerval timer;
 
 /* OUR METHODS */
 
-void timer_handler(int sig) {
-    for(int i = 0; i < 1000000; ++i) {
-        std::cout << i << std::endl;
-    }
-    std::cout << "in handler. sig: " << sig << std::endl;
-};
-
+/**
+ * Error printer
+ */
 void printError(std::string error_text) {
     std::cerr << "thread library error: " << error_text << std::endl;
     exit(1);
 };
 
+/**
+ * Switching threads
+ */
+void switchThreads(void) {
+    int retVal = sigsetjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
+
+    if (retVal == 1) {
+        std::cout << "retval =1" << std::endl;
+        return;
+    }
+
+    readyThreads.addThread(runningThread);
+    runningThread = readyThreads.pop();
+
+    std::cout << "runningThread: " << runningThread << std::endl;
+
+    siglongjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
+}
+
+/**
+ * Handle SIGALRM signals
+ */
+void timer_handler(int sig) {
+
+    switchThreads();
+
+    if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
+        printError("setitimer error.");
+    }
+};
+
+
+
+
+/**
+ * Init Timer
+ */
 void startTimer(int quantum_usecs) {
     struct sigaction sa;
-    struct itimerval timer;
+    /* Avoid VIRTUAL TIME ERROR */
+    sa.sa_flags = SA_RESTART;
+
     
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
@@ -54,8 +90,8 @@ void startTimer(int quantum_usecs) {
     long sec = quantum_usecs / SECOND;
 
     // Configure the timer to expire after quantum_usecs ... */
-    timer.it_value.tv_sec = 1;		// first time interval, seconds part
-    timer.it_value.tv_usec = 0;		// first time interval, microseconds part
+    timer.it_value.tv_sec = sec;		// first time interval, seconds part
+    timer.it_value.tv_usec = usec;		// first time interval, microseconds part
     
     // configure the timer to expire every quantum_usecs after that.
     timer.it_interval.tv_sec = sec;	// following time intervals, seconds part
@@ -66,6 +102,9 @@ void startTimer(int quantum_usecs) {
         printError("setitimer error.");
     }
 };
+
+
+
 
 /* END OUR METHODS */
 
@@ -78,8 +117,10 @@ void startTimer(int quantum_usecs) {
  * Return value: On success, return 0. On failure, return -1.
  */
 int uthread_init(int quantum_usecs) {
-    std::cout << activeThreads.addThread() << std::endl;
+    std::cout << "add main " << activeThreads.addMain() << std::endl;
     runningThread = 0;
+
+
     startTimer(quantum_usecs);
     return 0;
 };
@@ -95,11 +136,27 @@ int uthread_init(int quantum_usecs) {
  * On failure, return -1.
  */
 int uthread_spawn(void (*f)(void)) {
-    int newThread = activeThreads.addThread();
+    int newThread = activeThreads.addThread(*f);
     std::cout << "newThread:" << newThread << std::endl;
     readyThreads.addThread(newThread);
     return newThread;
 };
+
+
+/*
+ * Description: This function blocks the thread with ID tid. The thread may
+ * be resumed later using uthread_resume. If no thread with ID tid exists it
+ * is considered as an error. In addition, it is an error to try blocking the
+ * main thread (tid == 0). If a thread blocks itself, a scheduling decision
+ * should be made. Blocking a thread in BLOCKED or SLEEPING states has no
+ * effect and is not considered as an error.
+ * Return value: On success, return 0. On failure, return -1.
+ */
+int uthread_block(int tid) {
+
+}
+
+
 
 /*
  * Description: This function terminates the thread with ID tid and deletes
@@ -113,12 +170,22 @@ int uthread_spawn(void (*f)(void)) {
  * thread is terminated, the function does not return.
  */
 int uthread_terminate(int tid) {
+    sigset_t mSet;
+    sigemptyset(mSet);
+    sigaddset(&mSet, SIGALRM);
+    sigprocmask(SIG_SETMASK, &mSet, NULL);
+
+
     int oldThread = activeThreads.removeThread(tid);
     if(readyThreads.removeThread(tid)) {
         if(sleepingThreads.removeThread(tid)) {
             blockThreads.removeThread(tid);
         }
     }
+
+    /* UNBLOCK SIGALRM */
+    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+
     std::cout << "delete: " << oldThread << std::endl;
     return oldThread;
 };

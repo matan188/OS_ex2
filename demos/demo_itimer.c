@@ -24,7 +24,7 @@ int main(void) {
 
 	// Install timer_handler as the signal handler for SIGVTALRM.
 	sa.sa_handler = &timer_handler;
-	if (sigaction(SIGVTALRM, &sa,NULL) < 0) {
+	if (sigaction(SIGVTALRM, &sa, SA_RESETHAND) < 0) {
 		printf("sigaction error.");
 	}
 

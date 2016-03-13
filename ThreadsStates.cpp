@@ -8,6 +8,10 @@
 
 #include "ThreadsStates.h"
 
+
+/**
+ * Pop
+ */
 int ThreadsStates::pop() {
     if(threadsVec.size() == 0) {
         return -1;
@@ -17,8 +21,12 @@ int ThreadsStates::pop() {
     return ret;
 };
 
+
+/**
+ * Remove thread
+ */
 int ThreadsStates::removeThread(int tid) {
-    for(int i = 0; i < threadsVec.size(); ++i) {
+    for(long unsigned i = 0; i < threadsVec.size(); ++i) {
         if(threadsVec.at(i) == tid) {
             threadsVec.erase(threadsVec.begin() + i);
             return 0;
@@ -27,6 +35,10 @@ int ThreadsStates::removeThread(int tid) {
     return -1;
 };
 
+
+/**
+ * Add thread
+ */
 void ThreadsStates::addThread(int tid) {
     threadsVec.push_back(tid);
 };
