@@ -44,7 +44,7 @@ void ThreadsStates::addThread(int tid) {
 };
 
 void ThreadsStates::print() {
-    for(int i = 0; i < _threadsVec.size(); ++i) {
+    for(size_t i = 0; i < _threadsVec.size(); ++i) {
         std::cout << _threadsVec.at(i) << ", ";
     }
     std::cout << std::endl;

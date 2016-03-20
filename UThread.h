@@ -19,7 +19,7 @@ public:
     void setTid();
     long unsigned getQuantumsCount() { return _quantumsCount; };
     void updateQuantumCount() { _quantumsCount++; };
-    sigjmp_buf * getEnvPtr(){ &_env; };
+    sigjmp_buf * getEnvPtr(){ return &_env; };
     void setState(state s) { _state = s; };
     state getState() { return _state; };
     

@@ -49,9 +49,9 @@ address_t translate_address(address_t addr)
 #endif
 
 
-UThread::UThread(): _tid(0), _quantumsUntilWakeup(0), _state(ready) {};
+UThread::UThread(): _tid(0), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(1) {};
 
-UThread::UThread(int tid, void (*f)(void)): _tid(tid) {
+UThread::UThread(int tid, void (*f)(void)): _tid(tid), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(0) {
     address_t sp, pc;
 
     sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);

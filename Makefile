@@ -1,11 +1,26 @@
-CC = g++
-CFLAGS = -std=c++11 -Wextra
 
-main: main.o uthreads.o UThread.o ThreadsVector.o ThreadsStates.o
-	$(CC) $(CFLAGS) main.o uthreads.o UThread.o ThreadsVector.o ThreadsStates.o -o main
+CC = gcc
+RANLIB = ranlib
 
-main.o: main.cpp
-	$(CC) $(CFLAGS) -c main.cpp -o main.o 
+LIBSRC = uthreads.cpp uthreads.h UThread.h UThread.cpp ThreadsVector.cpp ThreadsVector.h ThreadsStates.h ThreadsStates.cpp
+LIBOBJ = $(LIBSRC:.cpp=.o)
+
+INCS = -I.
+CFLAGS = -Wall -std=c++11 -g $(INCS) 
+LOADLIBES = -L./ 
+
+UTHREADSLIB = libuthreads.a
+TARGETS = $(UTHREADSLIB) tar
+
+TAR = tar
+TARFLAGS = -cvf
+TARNAME = ex2.tar
+TARSRCS = $(LIBSRC) Makefile README
+
+all: $(TARGETS)
+
+main: $(UTHREADSLIB) main.cpp
+	g++ main.cpp $(UTHREADSLIB) -o main
 
 uthreads.o: uthreads.cpp 
 	$(CC) $(CFLAGS) -c uthreads.cpp -o uthreads.o
@@ -19,13 +34,14 @@ ThreadsVector.o: ThreadsVector.cpp
 ThreadsStates.o: ThreadsStates.cpp 
 	$(CC) $(CFLAGS) -c ThreadsStates.cpp -o ThreadsStates.o
 
-
-all:
-	make UThread.o
-	make ThreadsStates.o
-	make ThreadsVector.o
-	make uthreads.o
-	make main.o
+$(UTHREADSLIB): uthreads.o UThread.o ThreadsVector.o ThreadsStates.o
+	ar rcs $(UTHREADSLIB) uthreads.o UThread.o ThreadsVector.o ThreadsStates.o
+	ranlib $(UTHREADSLIB)
 
 clean:
-	*.o 
+	rm *.a *.o *.tar
+
+tar:
+	$(TAR) $(TARFLAGS) $(TARNAME) $(TARSRCS)
+	
+
