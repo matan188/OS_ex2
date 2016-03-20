@@ -48,9 +48,10 @@ address_t translate_address(address_t addr)
 
 #endif
 
-
+/* Main constructor */
 UThread::UThread(): _tid(0), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(1) {};
 
+/* Other threads constructor */
 UThread::UThread(int tid, void (*f)(void)): _tid(tid), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(0) {
     address_t sp, pc;
 

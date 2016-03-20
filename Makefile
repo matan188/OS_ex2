@@ -2,7 +2,7 @@
 CC = gcc
 RANLIB = ranlib
 
-LIBSRC = uthreads.cpp uthreads.h UThread.h UThread.cpp ThreadsVector.cpp ThreadsVector.h ThreadsStates.h ThreadsStates.cpp
+LIBSRC = uthreads.cpp UThread.h UThread.cpp ThreadsVector.cpp ThreadsVector.h ThreadsStates.h ThreadsStates.cpp
 LIBOBJ = $(LIBSRC:.cpp=.o)
 
 INCS = -I.
