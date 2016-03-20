@@ -13,11 +13,11 @@
  * Pop
  */
 int ThreadsStates::pop() {
-    if(threadsVec.size() == 0) {
+    if(_threadsVec.size() == 0) {
         return -1;
     }
-    int ret = threadsVec.front();
-    threadsVec.erase(threadsVec.begin());
+    int ret = _threadsVec.front();
+    _threadsVec.erase(_threadsVec.begin());
     return ret;
 };
 
@@ -26,9 +26,9 @@ int ThreadsStates::pop() {
  * Remove thread
  */
 int ThreadsStates::removeThread(int tid) {
-    for(long unsigned i = 0; i < threadsVec.size(); ++i) {
-        if(threadsVec.at(i) == tid) {
-            threadsVec.erase(threadsVec.begin() + i);
+    for(long unsigned i = 0; i < _threadsVec.size(); ++i) {
+        if(_threadsVec.at(i) == tid) {
+            _threadsVec.erase(_threadsVec.begin() + i);
             return 0;
         }
     }
@@ -40,5 +40,12 @@ int ThreadsStates::removeThread(int tid) {
  * Add thread
  */
 void ThreadsStates::addThread(int tid) {
-    threadsVec.push_back(tid);
+    _threadsVec.push_back(tid);
 };
+
+void ThreadsStates::print() {
+    for(int i = 0; i < _threadsVec.size(); ++i) {
+        std::cout << _threadsVec.at(i) << ", ";
+    }
+    std::cout << std::endl;
+}

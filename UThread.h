@@ -7,22 +7,29 @@
 #include "uthreads.h"
 #include <signal.h>
 
+enum state {ready, sleeping, running, blocked};
 
 class UThread {
 public:
     UThread();
     UThread(int tid, void (*f)(void));
     int getTid() { return _tid; };
+    int getQuantumsUntilWakeup() { return _quantumsUntilWakeup; };
+    void setQuantumsUntilWakeup(int sleepingTime) { _quantumsUntilWakeup = sleepingTime; };
     void setTid();
-    void setEnv(){ };
+    long unsigned getQuantumsCount() { return _quantumsCount; };
+    void updateQuantumCount() { _quantumsCount++; };
     sigjmp_buf * getEnvPtr(){ &_env; };
-
+    void setState(state s) { _state = s; };
+    state getState() { return _state; };
     
 private:
     sigjmp_buf _env;
     char _stack[STACK_SIZE];
     int _tid;
-    long unsigned _quantumCount;
+    state _state;
+    int _quantumsUntilWakeup;
+    long unsigned _quantumsCount;
 };
 
 #endif /* UThread_h */

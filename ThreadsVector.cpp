@@ -5,6 +5,9 @@ ThreadsVector::ThreadsVector(int maxThreads): maxThreads(maxThreads), minFreeTid
 
 
 UThread * ThreadsVector::at(int tid) {
+    if(tid < 0 || tid >= _threads.size()) {
+        return nullptr;
+    }
     return _threads.at(tid);
 }
 

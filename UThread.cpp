@@ -49,7 +49,7 @@ address_t translate_address(address_t addr)
 #endif
 
 
-UThread::UThread(): _tid(0) {};
+UThread::UThread(): _tid(0), _quantumsUntilWakeup(0), _state(ready) {};
 
 UThread::UThread(int tid, void (*f)(void)): _tid(tid) {
     address_t sp, pc;
@@ -60,5 +60,4 @@ UThread::UThread(int tid, void (*f)(void)): _tid(tid) {
     (_env->__jmpbuf)[JB_SP] = translate_address(sp);
     (_env->__jmpbuf)[JB_PC] = translate_address(pc);
     sigemptyset(&_env->__saved_mask);
-
 };

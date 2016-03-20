@@ -10,16 +10,20 @@
 #define ThreadsStates_h
 
 #include <stdio.h>
+#include <iostream>
 #include <vector>
 #include "UThread.h"
 
 class ThreadsStates {
 private:
-    std::vector<int> threadsVec;
+    std::vector<int> _threadsVec;
 public:
     int pop();
     int removeThread(int tid);
     void addThread(int tid);
+    void print();
+    size_t size() { return _threadsVec.size(); };
+    int at(int index) { return _threadsVec.at(index); };
 };
 
 #endif /* ThreadsStates_h */

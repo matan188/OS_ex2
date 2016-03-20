@@ -6,16 +6,28 @@
 
 
 void f() {
+    
+    long i = 0;
     while(true){
-       // std::cout << "f" << std::endl;
-       // usleep(10000);
+        if(i%100000000 == 0) {
+            std::cout << "f" << std::endl;
+
+        }
+        ++i;
     }
 }
 
 void g() {
+    uthread_block(2);
+    //uthread_sleep(5);
+    long i=0;
     while(true){
-       // std::cout << "g" << std::endl;
-       // usleep(10000);
+        if(i%100000000 == 0) {
+            //uthread_terminate(0);
+            std::cout << "g" << std::endl;
+            
+        }
+        ++i;
     }
 }
 
@@ -26,12 +38,15 @@ int main(void)
 
     uthread_spawn(&f);
     uthread_spawn(&g);
-
-
-
+    
+    
+    long i=0;
     for(;;){
-        //std::cout << "main" << std::endl;
-        //usleep(10000);
+        if(i%100000000== 0) {
+            std::cout << "main" << std::endl;
+            
+        }
+        ++i;
     };
 
 
