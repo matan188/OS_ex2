@@ -1,0 +1,80 @@
+matanmo, eyalc
+Student Matan Modai (305097560), Eyal Cohen (301300372)
+EX: 2
+
+FILES:
+
+ThreadsStates.cpp -- 
+ThreadsStates.h -- 
+ThreadsVector.cpp -- 
+ThreadsVector.h --
+UThread.h --
+UThread.cpp 
+uthreads.cpp
+Makefile -- Makefile for library
+README - this file
+
+REMARKS:
+These are some remarks that
+I want the graders to know
+about this submission.
+
+ANSWERS:
+
+1. Nowadays, web apps and websites are complex software that usually requires a lot of memory and a lot 
+of work from the rendering engine. In addition, the code is very dynamic and a may be unstable. Therefore, 
+it is advisable to create different process for every website (tab) or web app, this way, when one happens to 
+crash it does not affect the others.
+Another advantage is that is helps limit the damage in case of exploitation of malicious activity.
+Kernel level threads may be a good choice when dealing with less complex code allowing to use threads 
+advantages such as efficient context switches and easier resource sharing.
+
+http://blog.chromium.org/2008/09/multi-process-architecture.html
+
+
+2. There are several ways to kill processes. 
+When using "kill pid", the signal SIGTERM is sent to process. The process receives the signal and then 
+terminates itself properly. 
+When using " kill -9 pid", the signal SIGKILL is sent. In this case, the kernel terminates the process and 
+the process doesn't handle the signal.
+
+When typing the command "kill pid", an interrupt is raised from the keyboard to the CPU. The CPU receives the 
+interrupt which then sends it to the Kernel. The interrupt handler deals with the interrupt and according 
+to it sends a signal to the shell in order to display the typed commands. When submitting the command, 
+the shell sends a signal (SIGTERM) to the given process. When receiving the signal, the process may or may not
+handle it by terminating itself gracefully (closing files, closing connections, freeing memory, disconnect 
+from database etc...).
+
+
+3. Real time refers to the real world time. Setting an alarm by is equivalent to start a timer on your 
+own watch. Meaning that the timer is cross processes, the time keeps going even when another 
+process is running. 
+
+Virtual time refers to the time passed only in the specified process. When another process is running, the 
+virtual time of the first process is stopped and will continue only when the first process will continue its
+ running.
+
+
+Real time may be used when wanting the measure the time of a real world event. For example if we set the timer
+to notify the user in one minute from activating the timer.
+
+Virtual time may be used when wanting to measure code fraction duration. For example when wanting to 
+measure the running time of a specific function (we don't want to include the time in case other processes
+ran during the funciton running).
+
+
+4.a. Upon fork, the child process is identical to the parent except the pid, parent process id and 
+processes resources. 
+All the memory (stack, heap and global variables) is copy-on-write, which means that as long as none of 
+processes wrote (have performed changes), the memory will be shared. When a process wants 
+to write, the memory will be copied and from now on will not be shared anymore.
+
+b. A pipe is a like a redirection used to send the output of one program to another program. It like a tube
+that can move data from it's entrence to it's end. the entrence and end can be connected anywhere you want. 
+Using pipes one can connect two programs. Using pipes it is possible to make the output of a particular 
+command to act as the input for another command.
+
+
+
+
+

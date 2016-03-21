@@ -10,42 +10,37 @@
 #include "UThread.h"
 #include "ThreadsVector.h"
 #include "ThreadsStates.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <signal.h>
 #include <sys/time.h>
-#include <vector>
-
+#include <queue>
 #include <chrono>
-#include <ctime>
 
 #define SECOND 1000000
 
 ThreadsVector activeThreads(MAX_THREAD_NUM);
 ThreadsStates readyThreads;
 ThreadsStates sleepingThreads;
-int toDelete = 0;
+std::queue<int> toDel;
+
 int totalQuantum = 1;
 int runningThread;
 struct itimerval timer;
 
-int isPending = 0;
+//TODO delete to print from state and threads vectors
+//TODO decide upon pending method
+//int isPending = 0;
 
-/* OUR METHODS */
+/*** OUR METHODS ***/
 
 /**
- * Check if given tid exists and valid
+ * Handle Main termination
  */
-int tidVal(int tid) {
-    if( (size_t) tid >= activeThreads.size() || tid < 0) {
-        return -1;
+void terminateMain(int tid) {
+    if(tid == 0) {
+        for(int i = 1; i < (int) activeThreads.size(); ++i) {
+            activeThreads.removeThread(i);
+        }
+        exit(0);
     }
-    else if(activeThreads.at(tid) == nullptr) {
-        return -1;
-    }
-
-    return 0;
 }
 
 static void printError(std::string error_text) {
@@ -57,28 +52,84 @@ static void printSysError(std::string error_text) {
     exit(1);
 };
 
+/**
+ * Reset timer
+ */
+void resetTimer() {
+    if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
+        printError("setitimer error.");
+    }
+}
+
 
 /**
- * Switching threads
+ * Manages self termination\deletion of threads.
+ * After switching thread to the next one, we check if previous
+ * thread tried to delete itself and delete it in this thread's run.
  */
-void switchThreads(int sig) {
-    int retVal = sigsetjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
-
-    if (retVal == 1) {
-        return;
-    }
-    if(activeThreads.at(runningThread)->getState() != blocked) {
-        if(activeThreads.at(runningThread)->getState() != sleeping) {
-            readyThreads.addThread(runningThread);
-            activeThreads.at(runningThread)->setState(ready);
+void manageDeletion() {
+    if(!toDel.empty()) {
+        if(toDel.front() != runningThread) {
+            activeThreads.removeThread(toDel.front());
+            readyThreads.removeThread(toDel.front());
+            toDel.pop();
         }
     }
-    runningThread = readyThreads.pop();
-    activeThreads.at(runningThread)->setState(running);
+}
 
-    /* Handle sleeps */
+/**
+ * Block SIGVTALARM
+ */
+void blockSigalarm() {
+    sigset_t mSet;
+    sigemptyset(&mSet);
+    sigaddset(&mSet, SIGVTALRM);
+    sigprocmask(SIG_SETMASK, &mSet, NULL);
+}
+
+/**
+ * Unblock SIGVTALARM
+ */
+void unblockSigalarm() {
+    sigset_t mSet;
+    sigemptyset(&mSet);
+    sigaddset(&mSet, SIGVTALRM);
+    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+}
+
+
+/**
+ * Clear SIGVTALARM from pending
+ */
+void clearPending() {
+    sigset_t mSet;
+    sigpending(&mSet);
+    int isMember = sigismember(&mSet, SIGVTALRM);
+    int x;
+    if(isMember) {
+        sigwait(&mSet, &x);
+    }
+}
+
+/**
+ * Check if given tid exists and valid
+ */
+int tidVal(int tid) {
+    if( (size_t) tid >= activeThreads.size() || tid < 0) {
+        return -1;
+    }
+    else if(activeThreads.at(tid) == nullptr) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * Update sleeping threads quantum till wake-up
+ */
+void updateSleepingThreads() {
     for(size_t i = 0; i < sleepingThreads.size(); ++i) {
-        int tid = sleepingThreads.at(i);
+        int tid = sleepingThreads.at((int) i);
         UThread * thread = activeThreads.at(tid);
         int timeUntillWakeup = thread->getQuantumsUntilWakeup();
         if(timeUntillWakeup == 0) {
@@ -89,55 +140,91 @@ void switchThreads(int sig) {
         --timeUntillWakeup;
         thread->setQuantumsUntilWakeup(timeUntillWakeup);
     }
+}
+
+/**
+ * Switch Running with the next ready
+ */
+void switchRunning() {
+    if(activeThreads.at(runningThread)->getState() != blocked) {
+        if(activeThreads.at(runningThread)->getState() != sleeping) {
+            readyThreads.addThread(runningThread);
+            activeThreads.at(runningThread)->setState(ready);
+        }
+    }
+
+    runningThread = readyThreads.pop();
+    activeThreads.at(runningThread)->setState(running);
+}
+
+/**** Exercise's functions ***/
+
+/**
+ * Switching threads
+ */
+void switchThreads(int sig) {
+    int retVal = sigsetjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
+
+    if (retVal == 1) {
+        return;
+    }
+
+    /* Switch running with next ready */
+    switchRunning();
+
+    /* Handle sleeps */
+    updateSleepingThreads();
 
     activeThreads.at(runningThread)->updateQuantumCount();
     ++totalQuantum;
 
+    //TODO check if needed
     if(sig == -1) {
         // when switch called manually
-        if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
+        resetTimer();
+        /*if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
             printError("setitimer error.");
-        }
+        }*/
     }
-    sigset_t mSet;
 
+    clearPending();
+
+    /*sigset_t mSet;
     sigpending(&mSet);
     int isMember = sigismember(&mSet, SIGVTALRM);
     if(isMember) {
         isPending = 1;
-    }
+    }*/
+
     siglongjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
-
-
 }
 
 /**
  * Handle SIGALRM signals
  */
 void timer_handler(int sig) {
-    if(isPending == 0){
-        switchThreads(sig);
+    if(true /*isPending == 0*/){
 
         /* If self-erase */
-        if(toDelete) {
-            activeThreads.removeThread(toDelete);
-            readyThreads.removeThread(toDelete);
-            toDelete = 0;
-        }
+        manageDeletion();
 
-        if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
-            printError("setitimer error.");
-        }
+        switchThreads(sig);
+        resetTimer();
+
     } else{
-        isPending = 0;
+        //isPending = 0;
     }
-    sigset_t mSet;
 
+    clearPending();
+    /*
+    sigset_t mSet;
     sigpending(&mSet);
     int isMember = sigismember(&mSet, SIGVTALRM);
     if(isMember) {
         isPending = 1;
     }
+     */
+
 };
 
 /**
@@ -145,6 +232,7 @@ void timer_handler(int sig) {
  */
 void startTimer(int quantum_usecs) {
     struct sigaction sa;
+
     /* Avoid VIRTUAL TIME ERROR */
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
@@ -168,9 +256,7 @@ void startTimer(int quantum_usecs) {
     timer.it_interval.tv_usec = usec;	// following time intervals, microseconds part
 
     // Start a virtual timer. It counts down whenever this process is executing.
-    if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
-        printError("setitimer error.");
-    }
+    resetTimer();
 };
 
 /*
@@ -220,17 +306,15 @@ int uthread_spawn(void (*f)(void)) {
  */
 int uthread_block(int tid) {
     if(tid == 0) {
-        printError("Cannot block main thread");
+        printError("Blocking main thread is illegal");
         return -1;
     }
     if(tidVal(tid)) {
         printError("Invalid tid");
         return -1;
     }
-    sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &mSet, NULL);
+
+    blockSigalarm();
 
     UThread * thread = activeThreads.at(tid);
     if(thread == nullptr) {
@@ -246,7 +330,7 @@ int uthread_block(int tid) {
         switchThreads(-1);
     }
 
-    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+    unblockSigalarm();
     return 0;
 }
 
@@ -266,21 +350,15 @@ int uthread_terminate(int tid) {
         printError("Invalid tid");
         return -1;
     }
-    sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &mSet, NULL);
 
-    if(tid == 0) {
-        for(int i = 1; i < (int) activeThreads.size(); ++i) {
-            activeThreads.removeThread(i);
-        }
-        exit(0);
-    }
+    blockSigalarm();
+
+    terminateMain(tid);
+
 
     int oldThread = 0;
     if(activeThreads.at(tid)->getState() == running) {
-        toDelete = tid;
+        toDel.push(tid);
         raise(SIGVTALRM);
     } else {
         oldThread = activeThreads.removeThread(tid);
@@ -290,7 +368,7 @@ int uthread_terminate(int tid) {
     }
 
     /* UNBLOCK SIGVTALRM */
-    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+    unblockSigalarm();
     return oldThread;
 };
 
@@ -307,22 +385,16 @@ int uthread_resume(int tid) {
         return -1;
     }
 
-    sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &mSet, NULL);
+    blockSigalarm();
 
     UThread * thread = activeThreads.at(tid);
-    if(thread == nullptr) {
-        return -1;
-    }
 
     if(thread->getState() == blocked) {
         thread->setState(ready);
         readyThreads.addThread(tid);
     }
 
-    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+    unblockSigalarm();
     return 0;
 }
 
@@ -335,10 +407,13 @@ int uthread_resume(int tid) {
  * Return value: On success, return 0. On failure, return -1.
  */
 int uthread_sleep(int num_quantums) {
-    sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &mSet, NULL);
+
+    if(num_quantums <= 0) {
+        printError("Quantum must be positive");
+        return -1;
+    }
+
+    blockSigalarm();
     
     UThread * thread = activeThreads.at(runningThread);
 
@@ -347,7 +422,7 @@ int uthread_sleep(int num_quantums) {
     sleepingThreads.addThread(runningThread);
     raise(SIGVTALRM);
 
-    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+    unblockSigalarm();
     return 0;
 }
 
@@ -380,13 +455,14 @@ int uthread_get_total_quantums() {
  * increase this value by 1 (so if the thread with ID tid is in RUNNING state
  * when this function is called, include also the current quantum). If no
  * thread with ID tid exists it is considered as an error.
- * Return value: On success, return the number of quantums of the thread with ID tid. On failure, return -1.
+ * Return value: On success, return the number of quantums of the thread with
+ * ID tid. On failure, return -1.
  */
 int uthread_get_quantums(int tid) {
     if(tidVal(tid)) {
         printError("Invalid tid");
         return -1;
     }
-    return activeThreads.at(tid)->getQuantumsCount();
+    return (int) activeThreads.at(tid)->getQuantumsCount();
 }
 

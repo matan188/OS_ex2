@@ -7,10 +7,15 @@
 #include "UThread.h"
 #include <iostream>
 
+/**
+ * Wrapper for managing threads.
+ * Contains pointers to threads and functions to manage them
+ * properly.
+ */
 class ThreadsVector {
 private:
-    int maxThreads;
-    int minFreeTid;
+    int _maxThreads;
+    int _minFreeTid;
     std::vector<UThread *> _threads;
 
 public:

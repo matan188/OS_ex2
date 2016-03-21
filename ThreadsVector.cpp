@@ -17,9 +17,12 @@ static void printSysError(std::string error_text) {
     exit(1);
 };
 
-ThreadsVector::ThreadsVector(int maxThreads): maxThreads(maxThreads), minFreeTid(0) {};
+ThreadsVector::ThreadsVector(int maxThreads): _maxThreads(maxThreads),
+                                              _minFreeTid(0) {};
 
-
+/**
+ * Access thread from threads vector wrapper
+ */
 UThread * ThreadsVector::at(int tid) {
     if(tid < 0 || (size_t) tid >= _threads.size()) {
         return nullptr;
@@ -27,36 +30,38 @@ UThread * ThreadsVector::at(int tid) {
     return _threads.at(tid);
 }
 
-
+/**
+ * Add new thread to _threads vecotr by creating new thread
+ */
 int ThreadsVector::addThread(void (*f)(void)) {
-    int ret = minFreeTid;
+    int ret = _minFreeTid;
 
-    if(minFreeTid >= maxThreads) {
+    if(_minFreeTid >= _maxThreads) {
         printError("Exceeds number of Max Threads");
         return -1;
     } else {
         UThread * t;
         try
         {
-            t = new UThread(minFreeTid, f);
+            t = new UThread(_minFreeTid, f);
         } catch(std::bad_alloc &b){
             printSysError("Bad Allocation error");
         }
 
-        if(minFreeTid >= (int) _threads.size()) {
+        if(_minFreeTid >= (int) _threads.size()) {
             _threads.push_back(t);
-            ++minFreeTid;
+            ++_minFreeTid;
         } else {
-            _threads.at(minFreeTid) = t;
-            //minFreeTid = (int)_threads.size();
+            _threads.at(_minFreeTid) = t;
+            //_minFreeTid = (int)_threads.size();
             long unsigned i;
-            for(i = minFreeTid; i < _threads.size(); ++i) {
+            for(i = _minFreeTid; i < _threads.size(); ++i) {
                 if(_threads.at(i) == nullptr) {
-                    minFreeTid = i;
+                    _minFreeTid = i;
                     break;
                 }
             }
-            minFreeTid = i;
+            _minFreeTid = i;
         }
     }
 
@@ -67,7 +72,7 @@ int ThreadsVector::addThread(void (*f)(void)) {
 int ThreadsVector::addMain() {
     if(_threads.size() == 0) {
         _threads.push_back(new UThread());
-        minFreeTid = 1;
+        _minFreeTid = 1;
         return 0;
     }
     return -1;
@@ -85,8 +90,8 @@ int ThreadsVector::removeThread(int tid) {
             } else {
                  _threads.at(tid) = nullptr;
             }
-            if(tid < minFreeTid) {
-                minFreeTid = tid;
+            if(tid < _minFreeTid) {
+                _minFreeTid = tid;
             }
             return 0;
         }

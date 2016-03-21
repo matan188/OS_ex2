@@ -42,10 +42,3 @@ int ThreadsStates::removeThread(int tid) {
 void ThreadsStates::addThread(int tid) {
     _threadsVec.push_back(tid);
 };
-
-void ThreadsStates::print() {
-    for(size_t i = 0; i < _threadsVec.size(); ++i) {
-        std::cout << _threadsVec.at(i) << ", ";
-    }
-    std::cout << std::endl;
-}

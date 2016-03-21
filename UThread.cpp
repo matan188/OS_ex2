@@ -49,12 +49,15 @@ address_t translate_address(address_t addr)
 #endif
 
 /* Main constructor */
-UThread::UThread(): _tid(0), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(1) {};
+UThread::UThread(): _tid(0), _state(ready), _quantumsUntilWakeup(0),
+                    _quantumsCount(1) {};
 
 /* Other threads constructor */
-UThread::UThread(int tid, void (*f)(void)): _tid(tid), _state(ready), _quantumsUntilWakeup(0), _quantumsCount(0) {
+UThread::UThread(int tid, void (*f)(void)): _tid(tid), _state(ready),
+                                   _quantumsUntilWakeup(0), _quantumsCount(0) {
     address_t sp, pc;
 
+    /* Set stack and environment for new thread */
     sp = (address_t)_stack + STACK_SIZE - sizeof(address_t);
     pc = (address_t)f;
     sigsetjmp(_env, 1);

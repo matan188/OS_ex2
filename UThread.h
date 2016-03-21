@@ -7,16 +7,19 @@
 #include "uthreads.h"
 #include <signal.h>
 
+/* States for defining a thread's state */
 enum state {ready, sleeping, running, blocked};
 
+/**
+ * Class for threads objects
+ */
 class UThread {
 public:
     UThread();
     UThread(int tid, void (*f)(void));
-    int getTid() { return _tid; };
     int getQuantumsUntilWakeup() { return _quantumsUntilWakeup; };
-    void setQuantumsUntilWakeup(int sleepingTime) { _quantumsUntilWakeup = sleepingTime; };
-    void setTid();
+    void setQuantumsUntilWakeup(int sleepingTime) { _quantumsUntilWakeup =
+                                                            sleepingTime; };
     long unsigned getQuantumsCount() { return _quantumsCount; };
     void updateQuantumCount() { _quantumsCount++; };
     sigjmp_buf * getEnvPtr(){ return &_env; };
