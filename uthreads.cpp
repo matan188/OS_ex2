@@ -25,6 +25,8 @@ int totalQuantum = 1;
 int runningThread;
 struct itimerval timer;
 
+//TODO delete useless comments
+//TODO run valgrind? not mandatory
 //TODO delete to print from state and threads vectors
 //TODO decide upon pending method
 //int isPending = 0;
