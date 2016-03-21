@@ -26,6 +26,7 @@ int runningThread;
 struct itimerval timer;
 
 //TODO delete useless comments
+//TODO add makro and consts
 //TODO run valgrind? not mandatory
 //TODO delete to print from state and threads vectors
 //TODO decide upon pending method
