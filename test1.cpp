@@ -35,12 +35,14 @@ void f (void)
             if (i == 3 && j == 0)
             {
                 j++;
-                cout << "f go to sleep for 2 quan" << endl;
-                uthread_sleep(2);
+                cout << "          f suspend by f" << endl;
+                uthread_block(uthread_get_tid());
             }
             if (i == 6 && j == 1)
             {
                 j++;
+                cout << "          g resume by f" << endl;
+                uthread_resume(2);
             }
             if (i == 8 && j == 2)
             {
@@ -70,12 +72,6 @@ void g (void)
                 uthread_terminate(uthread_get_tid());
                 return;
             }
-            if (i == 3 && j == 0)
-            {
-                cout << "g go to sleep for 3 quan" << endl;
-                uthread_sleep(3);
-            }
-
             i++;
         }
     }
@@ -109,18 +105,35 @@ int main(void)
             if (i == 6 && j == 1)
             {
                 j++;
+                cout << "          g suspend by main" << endl;
+                uthread_block(2);
+                cout << "          g suspend again by main" << endl;
+                uthread_block(2);
             }
             if (i == 9 && j == 2)
             {
                 j++;
+                cout << "          f resume by main" << endl;
+                uthread_resume(1);
+                cout << "          f resume again by main" << endl;
+                uthread_resume(1);
             }
             if (i == 13 && j == 3)
             {
                 j++;
+                cout << "          spawn f at (1) " << uthread_spawn(f) << endl;
+                cout << "          f suspend by main" << endl;
+                uthread_block(1);
             }
             if (i == 17 && j == 4)
             {
                 j++;
+                cout << "          spawn g at (2) " << uthread_spawn(g) << endl;
+                cout << "          f terminate by main" << endl;
+                uthread_terminate(1);
+                cout << "          spawn f at (1) " << uthread_spawn(f) << endl;
+                cout << "          f suspend by main" << endl;
+                uthread_block(1);
             }
             if (i == 20 && j == 5)
             {

@@ -15,6 +15,11 @@
 #include <chrono>
 
 #define SECOND 1000000
+#define SIG_ERROR "sig error"
+#define QUANTUM_NOT_POSITIVE "Quantum must be positive"
+#define INVALID_TID "Invalid tid"
+#define BLOCK_MAIN_ERROR "Blocking main thread is illegal"
+#define SET_TIMER_ERROR "setitimer error"
 
 ThreadsVector activeThreads(MAX_THREAD_NUM);
 ThreadsStates readyThreads;
@@ -30,6 +35,7 @@ struct itimerval timer;
 //TODO run valgrind? not mandatory
 //TODO delete to print from state and threads vectors
 //TODO decide upon pending method
+//TODO add error check for all system calls (such as sigemptyset...)
 //int isPending = 0;
 
 /*** OUR METHODS ***/
@@ -60,7 +66,7 @@ static void printSysError(std::string error_text) {
  */
 void resetTimer() {
     if (setitimer(ITIMER_VIRTUAL, &timer, NULL)) {
-        printError("setitimer error.");
+        printSysError(SET_TIMER_ERROR);
     }
 }
 
@@ -85,9 +91,15 @@ void manageDeletion() {
  */
 void blockSigalarm() {
     sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_SETMASK, &mSet, NULL);
+    if(sigemptyset(&mSet) == -1) {
+        printSysError(SIG_ERROR);
+    }
+    if(sigaddset(&mSet, SIGVTALRM) == -1) {
+        printSysError(SIG_ERROR);
+    }
+    if(sigprocmask(SIG_SETMASK, &mSet, NULL) == -1) {
+        printSysError(SIG_ERROR);
+    }
 }
 
 /**
@@ -95,9 +107,15 @@ void blockSigalarm() {
  */
 void unblockSigalarm() {
     sigset_t mSet;
-    sigemptyset(&mSet);
-    sigaddset(&mSet, SIGVTALRM);
-    sigprocmask(SIG_UNBLOCK, &mSet, NULL);
+    if(sigemptyset(&mSet) == -1) {
+        printSysError(SIG_ERROR);
+    }
+    if(sigaddset(&mSet, SIGVTALRM) == -1) {
+        printSysError(SIG_ERROR);
+    }
+    if(sigprocmask(SIG_UNBLOCK, &mSet, NULL) == -1) {
+        printSysError(SIG_ERROR);
+    }
 }
 
 
@@ -135,13 +153,13 @@ void updateSleepingThreads() {
         int tid = sleepingThreads.at((int) i);
         UThread * thread = activeThreads.at(tid);
         int timeUntillWakeup = thread->getQuantumsUntilWakeup();
+        --timeUntillWakeup;
+        thread->setQuantumsUntilWakeup(timeUntillWakeup);
         if(timeUntillWakeup == 0) {
             thread->setState(ready);
             sleepingThreads.removeThread(tid);
             readyThreads.addThread(tid);
         }
-        --timeUntillWakeup;
-        thread->setQuantumsUntilWakeup(timeUntillWakeup);
     }
 }
 
@@ -172,11 +190,11 @@ void switchThreads(int sig) {
         return;
     }
 
-    /* Switch running with next ready */
-    switchRunning();
-
     /* Handle sleeps */
     updateSleepingThreads();
+
+    /* Switch running with next ready */
+    switchRunning();
 
     activeThreads.at(runningThread)->updateQuantumCount();
     ++totalQuantum;
@@ -191,13 +209,6 @@ void switchThreads(int sig) {
     }
 
     clearPending();
-
-    /*sigset_t mSet;
-    sigpending(&mSet);
-    int isMember = sigismember(&mSet, SIGVTALRM);
-    if(isMember) {
-        isPending = 1;
-    }*/
 
     siglongjmp(*(activeThreads.at(runningThread)->getEnvPtr()), 1);
 }
@@ -219,14 +230,6 @@ void timer_handler(int sig) {
     }
 
     clearPending();
-    /*
-    sigset_t mSet;
-    sigpending(&mSet);
-    int isMember = sigismember(&mSet, SIGVTALRM);
-    if(isMember) {
-        isPending = 1;
-    }
-     */
 
 };
 
@@ -243,7 +246,7 @@ void startTimer(int quantum_usecs) {
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
     if (sigaction(SIGVTALRM, &sa, NULL) < 0) {
-        printError("sigaction error.");
+        printError(SIG_ERROR);
     }
     
     // Calc timer times
@@ -272,7 +275,7 @@ void startTimer(int quantum_usecs) {
  */
 int uthread_init(int quantum_usecs) {
     if(quantum_usecs <= 0) {
-        printError("Quantum must be positive");
+        printError(QUANTUM_NOT_POSITIVE);
         return -1;
     }
 
@@ -309,11 +312,11 @@ int uthread_spawn(void (*f)(void)) {
  */
 int uthread_block(int tid) {
     if(tid == 0) {
-        printError("Blocking main thread is illegal");
+        printError(BLOCK_MAIN_ERROR);
         return -1;
     }
     if(tidVal(tid)) {
-        printError("Invalid tid");
+        printError(INVALID_TID);
         return -1;
     }
 
@@ -350,7 +353,7 @@ int uthread_block(int tid) {
  */
 int uthread_terminate(int tid) {
     if(tidVal(tid)) {
-        printError("Invalid tid");
+        printError(INVALID_TID);
         return -1;
     }
 
@@ -384,7 +387,7 @@ int uthread_terminate(int tid) {
  */
 int uthread_resume(int tid) {
     if(tidVal(tid)) {
-        printError("Invalid tid");
+        printError(INVALID_TID);
         return -1;
     }
 
@@ -410,9 +413,8 @@ int uthread_resume(int tid) {
  * Return value: On success, return 0. On failure, return -1.
  */
 int uthread_sleep(int num_quantums) {
-
     if(num_quantums <= 0) {
-        printError("Quantum must be positive");
+        printError(QUANTUM_NOT_POSITIVE);
         return -1;
     }
 
@@ -463,9 +465,8 @@ int uthread_get_total_quantums() {
  */
 int uthread_get_quantums(int tid) {
     if(tidVal(tid)) {
-        printError("Invalid tid");
+        printError(INVALID_TID);
         return -1;
     }
     return (int) activeThreads.at(tid)->getQuantumsCount();
 }
-
