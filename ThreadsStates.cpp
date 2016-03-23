@@ -8,19 +8,19 @@
 
 #include "ThreadsStates.h"
 
+#define FAILURE -1
 
 /**
  * Pop
  */
 int ThreadsStates::pop() {
     if(_threadsVec.size() == 0) {
-        return -1;
+        return FAILURE;
     }
     int ret = _threadsVec.front();
     _threadsVec.erase(_threadsVec.begin());
     return ret;
 };
-
 
 /**
  * Remove thread
@@ -32,7 +32,7 @@ int ThreadsStates::removeThread(int tid) {
             return 0;
         }
     }
-    return -1;
+    return FAILURE;
 };
 
 

@@ -2,7 +2,10 @@
 CC = gcc
 RANLIB = ranlib
 
-LIBSRC = uthreads.cpp UThread.h UThread.cpp ThreadsVector.cpp ThreadsVector.h ThreadsStates.h ThreadsStates.cpp
+LIB1 = uthreads.cpp UThread.h UThread.cpp ThreadsVector.cpp ThreadsVector.h 
+LIB2 = ThreadsStates.h ThreadsStates.cpp
+LIBSRC = $(LIB1) $(LIB2)
+
 LIBOBJ = $(LIBSRC:.cpp=.o)
 
 INCS = -I.
@@ -20,7 +23,7 @@ TARSRCS = $(LIBSRC) Makefile README
 all: $(TARGETS)
 
 main: $(UTHREADSLIB) main.cpp
-	g++ main.cpp $(UTHREADSLIB) -o main
+	g++ -Wall -std=c++11 -g $(INCS) main.cpp $(UTHREADSLIB) -o main
 
 uthreads.o: uthreads.cpp 
 	$(CC) $(CFLAGS) -c uthreads.cpp -o uthreads.o
