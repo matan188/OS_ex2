@@ -31,22 +31,19 @@ int totalQuantum = 1;
 int runningThread;
 struct itimerval timer;
 
-//TODO delete useless comments
-//TODO run valgrind? not mandatory
-//TODO print error
 
 /*** OUR METHODS ***/
 
 /**
  * Handle Main termination
  */
-void terminateMain(int tid) {
-    if(tid == 0) {
-        for(int i = 1; i < (int) activeThreads.size(); ++i) {
-            activeThreads.removeThread(i);
-        }
-        exit(0);
+void terminateMain() {
+    for(int i = 1; i < (int) activeThreads.size(); ++i) {
+        activeThreads.removeThread(i);
     }
+    delete activeThreads.at(0);
+    exit(0);
+
 }
 
 static void printError(std::string error_text) {
@@ -66,7 +63,6 @@ void resetTimer() {
         printSysError(SET_TIMER_ERROR);
     }
 }
-
 
 /**
  * Manages self termination\deletion of threads.
@@ -138,6 +134,10 @@ int tidVal(int tid) {
     }
     else if(activeThreads.at(tid) == nullptr) {
         return FAILURE;
+    } else if(!toDel.empty()) {
+        if(activeThreads.at(tid)->getState() == terminated){
+            return FAILURE;
+        }
     }
     return 0;
 }
@@ -150,12 +150,14 @@ void updateSleepingThreads() {
         int tid = sleepingThreads.at((int) i);
         UThread * thread = activeThreads.at(tid);
         int timeUntillWakeup = thread->getQuantumsUntilWakeup();
-        --timeUntillWakeup;
-        thread->setQuantumsUntilWakeup(timeUntillWakeup);
+
         if(timeUntillWakeup == 0) {
             thread->setState(ready);
             sleepingThreads.removeThread(tid);
             readyThreads.addThread(tid);
+        } else {
+            --timeUntillWakeup;
+            thread->setQuantumsUntilWakeup(timeUntillWakeup);
         }
     }
 }
@@ -196,7 +198,6 @@ void switchThreads(int sig) {
     activeThreads.at(runningThread)->updateQuantumCount();
     ++totalQuantum;
 
-    //TODO check if needed
     /* when switch is called manually */
     if(sig == -1) {
         resetTimer();
@@ -337,19 +338,21 @@ int uthread_block(int tid) {
  * thread is terminated, the function does not return.
  */
 int uthread_terminate(int tid) {
-    if(tidVal(tid)) {
+    if(tidVal(tid) && tid != 0) {
         printError(INVALID_TID);
         return FAILURE;
     }
 
     blockSigalarm();
-
-    terminateMain(tid);
+    if(tid == 0) {
+        terminateMain();
+    }
 
     int oldThread = 0;
     if(activeThreads.at(tid)->getState() == running) {
         /* Will be delete in next quanta */
         toDel.push(tid);
+        activeThreads.at(tid)->setState(terminated);
         raise(SIGVTALRM);
     } else {
         oldThread = activeThreads.removeThread(tid);
@@ -435,7 +438,6 @@ int uthread_get_tid() {
 int uthread_get_total_quantums() {
     return totalQuantum;
 }
-
 
 /*
  * Description: This function returns the number of quantums the thread with

@@ -35,7 +35,6 @@ void f (void)
             if (i == 3 && j == 0)
             {
                 j++;
-                cout << "f go to sleep for 2 quan" << endl;
                 uthread_sleep(2);
             }
             if (i == 6 && j == 1)
@@ -72,7 +71,7 @@ void g (void)
             }
             if (i == 3 && j == 0)
             {
-                cout << "g go to sleep for 3 quan" << endl;
+
                 uthread_sleep(3);
             }
 
